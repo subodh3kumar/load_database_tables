@@ -1,119 +1,135 @@
 package workshop.service;
 
-import java.sql.DatabaseMetaData;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.RowCallbackHandler;
+import org.springframework.jdbc.datasource.DataSourceUtils;
 import org.springframework.stereotype.Service;
-
-import jakarta.servlet.http.HttpSession;
-import lombok.extern.slf4j.Slf4j;
 import workshop.model.Column;
 import workshop.model.Table;
+
+import javax.sql.DataSource;
+import java.sql.*;
+import java.util.*;
 
 @Slf4j
 @Service
 public class SourceService {
 
-	private final JdbcTemplate sourceJdbcTemplate;
-	private final JdbcTemplate targetJdbcTemplate;
+    private final Connection connection;
 
-	public SourceService(@Qualifier("sourceJdbcTemplate") JdbcTemplate sourceJdbcTemplate,
-						 @Qualifier("targetJdbcTemplate") JdbcTemplate targetJdbcTemplate) {
-		this.sourceJdbcTemplate = sourceJdbcTemplate;
-		this.targetJdbcTemplate = targetJdbcTemplate;
-	}
+    public SourceService(@Qualifier("sourceDataSource") DataSource dataSource) {
+        connection = Objects.requireNonNull(DataSourceUtils.getConnection(dataSource));
+    }
 
-	public void getSourceDatabaseInfo(HttpSession session) {
-		try {
-			DatabaseMetaData metaData = sourceJdbcTemplate.getDataSource().getConnection().getMetaData();
+    public List<Table> getSourceDatabaseInfo() {
+        List<Table> tables = new ArrayList<>();
 
-			String userName = metaData.getUserName();
-			String sourceProductName = metaData.getDatabaseProductName();
-			int sourceProductVersion = metaData.getDatabaseMajorVersion();
-			int sourceProductMinorVersion = metaData.getDatabaseMinorVersion();
-			String url = metaData.getURL();
-			String serviceName = StringUtils.substringAfterLast(url, "/");
+        try {
+            DatabaseMetaData metaData = connection.getMetaData();
 
-			log.info("source database username: {}", userName);
-			log.info("source database name: {}", sourceProductName);
-			log.info("source database version: {}", sourceProductVersion + "." + sourceProductMinorVersion);
-			log.info("source database service name: {}", serviceName);
+            String userName = metaData.getUserName();
+            String sourceProductName = metaData.getDatabaseProductName();
+            int sourceProductVersion = metaData.getDatabaseMajorVersion();
+            int sourceProductMinorVersion = metaData.getDatabaseMinorVersion();
+            String url = metaData.getURL();
+            String serviceName = StringUtils.substringAfterLast(url, "/");
 
-			List<String> sourceTables = new ArrayList<>();
-			ResultSet tableResultSet = metaData.getTables(null, userName, null, new String[] { "TABLE" });
-			while (tableResultSet.next()) {
-				sourceTables.add(tableResultSet.getString("TABLE_NAME"));
-			}
-			log.info("total source tables available: {}", sourceTables.size());
+            log.info("source database username: {}", userName);
+            log.info("source database name: {}", sourceProductName);
+            log.info("source database version: {}", sourceProductVersion + "." + sourceProductMinorVersion);
+            log.info("source database service name: {}", serviceName);
 
-			List<Table> tables = new ArrayList<>();
+            List<String> sourceTables = new ArrayList<>();
+            ResultSet tableResultSet = metaData.getTables(null, userName, null, new String[]{"TABLE"});
+            while (tableResultSet.next()) {
+                sourceTables.add(tableResultSet.getString("TABLE_NAME"));
+            }
+            log.info("total source tables available: {}", sourceTables.size());
 
-			for (String tableName : sourceTables) {
-				ResultSet columnResultSet = metaData.getColumns(null, userName, tableName, null);
 
-				List<Column> columns = new ArrayList<>();
+            for (String tableName : sourceTables) {
+                ResultSet columnResultSet = metaData.getColumns(null, userName, tableName, null);
 
-				while (columnResultSet.next()) {
-					String columnName = columnResultSet.getString("COLUMN_NAME");
-					String columnType = columnResultSet.getString("TYPE_NAME");
-					columns.add(new Column(columnName, columnType));
-				}
-				tables.add(new Table(tableName, columns));
-			}
-			tables.forEach(table -> log.info(table.toString()));
+                List<Column> columns = new ArrayList<>();
 
-			Optional<Table> findFirstTable = tables.stream()
-					.filter(table -> "EMPLOYEE".equalsIgnoreCase(table.tableName())).findFirst();
+                while (columnResultSet.next()) {
+                    String columnName = columnResultSet.getString("COLUMN_NAME");
+                    String columnType = columnResultSet.getString("TYPE_NAME");
+                    int ordinalPosition = columnResultSet.getInt("ORDINAL_POSITION");
+                    columns.add(new Column(columnName, columnType, ordinalPosition));
+                }
+                tables.add(new Table(tableName, columns));
+            }
+            tables.forEach(table -> log.info(table.toString()));
+        } catch (SQLException e) {
+            log.error("ERROR:", e);
+        }
+        return tables;
+    }
 
-			if (findFirstTable.isPresent()) {
-				Table table = findFirstTable.get();
-				log.info("table name: {}", table);
-			}
+    public List<Map<String, Object>> getTableRows(Table table, String whereClause) {
+        String tableName = table.tableName();
 
-		} catch (SQLException e) {
-			log.error("ERROR:", e);
-		}
-	}
+        String sql = StringUtils.EMPTY;
+        if (StringUtils.isNotBlank(tableName)) {
+            sql = "select * from " + tableName;
+        }
+        if (StringUtils.isNotBlank(whereClause)) {
+            sql += sql + " " + whereClause;
+        }
+        log.info("select sql query: {}", sql);
+        List<Map<String, Object>> results = new ArrayList<>();
 
-	public void getTableRows() {
-		String sql = "select * from ora.emp";
+        try {
+            PreparedStatement ps = connection.prepareStatement(sql);
+            ResultSet rs = ps.executeQuery();
 
-		// List<Map<String, Object>> queryForList =
-		// sourceJdbcTemplate.queryForList(sql);
+            List<Column> columns = table.columns();
 
-		// queryForList.forEach(obj -> extract(obj));
+            while (rs.next()) {
+                var row = new HashMap<String, Object>();
 
-	}
+                for (Column column : columns) {
+                    Object obj = rs.getObject(column.ordinalPosition());
+                    row.put(column.columnName(), obj);
+                }
+                results.add(row);
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
 
-	public void getTableRows2() {
-		String sql = "select * from ora.emp";
+        // List<Map<String, Object>> queryForList =
+        // sourceJdbcTemplate.queryForList(sql);
 
-		sourceJdbcTemplate.query(sql, new RowCallbackHandler() {
+        // queryForList.forEach(obj -> extract(obj));
 
-			@Override
-			public void processRow(ResultSet rs) throws SQLException {
-				// TODO Auto-generated method stub
+        log.info("results size: {}", results.size());
 
-			}
-		});
+        return results;
+    }
 
-		sourceJdbcTemplate.query(sql, rs -> {
+    /*public void getTableRows2() {
+        String sql = "select * from ora.emp";
 
-		});
-	}
+        jdbcTemplate.query(sql, new RowCallbackHandler() {
 
-	private Object extract(Map<String, Object> obj) {
-		log.info("----------------------size: {}", obj.size());
-		obj.forEach((k, v) -> log.info("key: {}, value: {}", k, (v == null ? "" : v)));
-		return null;
-	}
+            @Override
+            public void processRow(ResultSet rs) throws SQLException {
+                // TODO Auto-generated method stub
+
+            }
+        });
+
+        jdbcTemplate.query(sql, rs -> {
+
+        });
+    }*/
+
+    private Object extract(Map<String, Object> obj) {
+        log.info("----------------------size: {}", obj.size());
+        obj.forEach((k, v) -> log.info("key: {}, value: {}", k, (v == null ? "" : v)));
+        return null;
+    }
 }

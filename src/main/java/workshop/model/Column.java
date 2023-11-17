@@ -1,5 +1,5 @@
 package workshop.model;
 
-public record Column(String columnName, String columnType) {
+public record Column(String columnName, String columnType, int ordinalPosition) {
 
 }
