@@ -9,10 +9,7 @@ import workshop.model.Column;
 import workshop.model.Table;
 
 import javax.sql.DataSource;
-import java.sql.Connection;
-import java.sql.DatabaseMetaData;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -28,7 +25,7 @@ public class TargetService {
     }
 
 
-    public void persistTableRows(List<Map<String, Object>> tableRows, Table table) {
+    public void persistTableRows(List<Map<Column, Object>> tableRows, Table table) {
         try {
             DatabaseMetaData metaData = connection.getMetaData();
             String userName = metaData.getUserName();
@@ -43,25 +40,70 @@ public class TargetService {
             log.info("target database version: {}", targetProductVersion + "." + targetProductMinorVersion);
             log.info("target database service name: {}", serviceName);
 
-            String sql = "INSERT INTO " + table.tableName() + " VALUES (" + placeholder(table.columns().size()) + ")";
+            //(EMPLOYEE_ID, FIRST_NAME, LAST_NAME, EMAIL, PHONE, HIRE_DATE, MANAGER_ID, JOB_TITLE)
+            String sql = "INSERT INTO " + table.tableName() + "(EMPLOYEE_ID, FIRST_NAME, LAST_NAME, EMAIL, PHONE, HIRE_DATE, MANAGER_ID, JOB_TITLE) VALUES (" + placeholder(table.columns().size()) + ")";
             log.info("insert sql: {}", sql);
 
-            PreparedStatement ps = connection.prepareStatement(sql);
+            final PreparedStatement ps = connection.prepareStatement(sql);
 
+            for (Map<Column, Object> map : tableRows) {
+                for (Map.Entry<Column, Object> entry : map.entrySet()) {
+                    Column key = entry.getKey();
+                    Object value = entry.getValue();
 
-            for (Map<String, Object> map : tableRows) {
-                map.forEach((key, value) -> {
-                   value.
-                });
+                    log.info("key: {}", key);
+                    log.info("value: {}", value);
 
-                for (Column column : table.columns()) {
-
-                }
+                    ps.setObject(key.ordinalPosition(), value);
             }
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
+            log.info("=========================");
+            ps.addBatch();
         }
+        ps.executeBatch();
+
+
+            /*for (Map<Column, Object> map : tableRows) {
+                map.forEach((key, value) -> {
+                    log.info("key: {}", key);
+                    log.info("value: {}", value);
+
+                    try {
+                        switch (key.columnType()) {
+                            case "NUMBER", "INTEGER" -> {
+                                log.info("----> {}", value);
+                                if (value instanceof Integer integer) {
+                                    ps.setInt(key.ordinalPosition(), integer);
+                                }
+                            }
+                            case "DATE", "TIMESTAMP" -> {
+                                if (value instanceof Date date) {
+                                    Timestamp timestamp = Timestamp.valueOf(String.valueOf(date.getTime()));
+                                    ps.setTimestamp(key.ordinalPosition(), timestamp);
+                                }
+                            }
+                            default -> {
+                                assert value instanceof String;
+                                ps.setString(key.ordinalPosition(), (String) value);
+                            }
+                        }
+                        //ps.addBatch();
+                    } catch (SQLException e) {
+                        throw new RuntimeException(e);
+                    }
+                });
+                ps.addBatch();
+                log.info("============================");
+            }*/
+        log.info(".......................");
+        ps.executeBatch();
+    } catch(
+    SQLException e)
+
+    {
+        throw new RuntimeException(e);
     }
+
+}
 
     private String placeholder(int totalColumn) {
         String placeholder = "?, ";

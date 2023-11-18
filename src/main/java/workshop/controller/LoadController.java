@@ -3,6 +3,7 @@ package workshop.controller;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
+import workshop.model.Column;
 import workshop.model.Table;
 import workshop.service.SourceService;
 import workshop.service.TargetService;
@@ -33,11 +34,10 @@ public class LoadController {
 
         if (targetTableName.isPresent()) {
             Table table = targetTableName.get();
-            List<Map<String, Object>> tableRows = sourceService.getTableRows(table, "");
-            tableRows.forEach(map -> log.info(map.values().toString()));
+            List<Map<Column, Object>> tableRows = sourceService.getTableRows(table, "");
+            //tableRows.forEach(map -> log.info(map.values().toString()));
             targetService.persistTableRows(tableRows, table);
         }
-
         return "index";
     }
 }

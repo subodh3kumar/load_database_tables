@@ -68,7 +68,7 @@ public class SourceService {
         return tables;
     }
 
-    public List<Map<String, Object>> getTableRows(Table table, String whereClause) {
+    public List<Map<Column, Object>> getTableRows(Table table, String whereClause) {
         String tableName = table.tableName();
 
         String sql = StringUtils.EMPTY;
@@ -79,7 +79,7 @@ public class SourceService {
             sql += sql + " " + whereClause;
         }
         log.info("select sql query: {}", sql);
-        List<Map<String, Object>> results = new ArrayList<>();
+        List<Map<Column, Object>> results = new ArrayList<>();
 
         try {
             PreparedStatement ps = connection.prepareStatement(sql);
@@ -88,11 +88,11 @@ public class SourceService {
             List<Column> columns = table.columns();
 
             while (rs.next()) {
-                var row = new HashMap<String, Object>();
+                var row = new HashMap<Column, Object>();
 
                 for (Column column : columns) {
                     Object obj = rs.getObject(column.ordinalPosition());
-                    row.put(column.columnName(), obj);
+                    row.put(column, obj);
                 }
                 results.add(row);
             }
