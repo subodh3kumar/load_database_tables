@@ -9,7 +9,10 @@ import workshop.model.Column;
 import workshop.model.Table;
 
 import javax.sql.DataSource;
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -40,8 +43,7 @@ public class TargetService {
             log.info("target database version: {}", targetProductVersion + "." + targetProductMinorVersion);
             log.info("target database service name: {}", serviceName);
 
-            //(EMPLOYEE_ID, FIRST_NAME, LAST_NAME, EMAIL, PHONE, HIRE_DATE, MANAGER_ID, JOB_TITLE)
-            String sql = "INSERT INTO " + table.tableName() + "(EMPLOYEE_ID, FIRST_NAME, LAST_NAME, EMAIL, PHONE, HIRE_DATE, MANAGER_ID, JOB_TITLE) VALUES (" + placeholder(table.columns().size()) + ")";
+            String sql = "INSERT INTO " + table.tableName() + " VALUES (" + placeholder(table.columns().size()) + ")";
             log.info("insert sql: {}", sql);
 
             final PreparedStatement ps = connection.prepareStatement(sql);
@@ -50,60 +52,15 @@ public class TargetService {
                 for (Map.Entry<Column, Object> entry : map.entrySet()) {
                     Column key = entry.getKey();
                     Object value = entry.getValue();
-
-                    log.info("key: {}", key);
-                    log.info("value: {}", value);
-
                     ps.setObject(key.ordinalPosition(), value);
-            }
-            log.info("=========================");
-            ps.addBatch();
-        }
-        ps.executeBatch();
-
-
-            /*for (Map<Column, Object> map : tableRows) {
-                map.forEach((key, value) -> {
-                    log.info("key: {}", key);
-                    log.info("value: {}", value);
-
-                    try {
-                        switch (key.columnType()) {
-                            case "NUMBER", "INTEGER" -> {
-                                log.info("----> {}", value);
-                                if (value instanceof Integer integer) {
-                                    ps.setInt(key.ordinalPosition(), integer);
-                                }
-                            }
-                            case "DATE", "TIMESTAMP" -> {
-                                if (value instanceof Date date) {
-                                    Timestamp timestamp = Timestamp.valueOf(String.valueOf(date.getTime()));
-                                    ps.setTimestamp(key.ordinalPosition(), timestamp);
-                                }
-                            }
-                            default -> {
-                                assert value instanceof String;
-                                ps.setString(key.ordinalPosition(), (String) value);
-                            }
-                        }
-                        //ps.addBatch();
-                    } catch (SQLException e) {
-                        throw new RuntimeException(e);
-                    }
-                });
+                }
                 ps.addBatch();
-                log.info("============================");
-            }*/
-        log.info(".......................");
-        ps.executeBatch();
-    } catch(
-    SQLException e)
-
-    {
-        throw new RuntimeException(e);
+            }
+            ps.executeBatch();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
     }
-
-}
 
     private String placeholder(int totalColumn) {
         String placeholder = "?, ";

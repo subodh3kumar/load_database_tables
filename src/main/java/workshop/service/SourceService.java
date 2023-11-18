@@ -47,7 +47,6 @@ public class SourceService {
             }
             log.info("total source tables available: {}", sourceTables.size());
 
-
             for (String tableName : sourceTables) {
                 ResultSet columnResultSet = metaData.getColumns(null, userName, tableName, null);
 
@@ -61,9 +60,9 @@ public class SourceService {
                 }
                 tables.add(new Table(tableName, columns));
             }
-            tables.forEach(table -> log.info(table.toString()));
+            //tables.forEach(table -> log.info(table.toString()));
         } catch (SQLException e) {
-            log.error("ERROR:", e);
+            throw new RuntimeException(e);
         }
         return tables;
     }
@@ -99,37 +98,7 @@ public class SourceService {
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
-
-        // List<Map<String, Object>> queryForList =
-        // sourceJdbcTemplate.queryForList(sql);
-
-        // queryForList.forEach(obj -> extract(obj));
-
         log.info("results size: {}", results.size());
-
         return results;
-    }
-
-    /*public void getTableRows2() {
-        String sql = "select * from ora.emp";
-
-        jdbcTemplate.query(sql, new RowCallbackHandler() {
-
-            @Override
-            public void processRow(ResultSet rs) throws SQLException {
-                // TODO Auto-generated method stub
-
-            }
-        });
-
-        jdbcTemplate.query(sql, rs -> {
-
-        });
-    }*/
-
-    private Object extract(Map<String, Object> obj) {
-        log.info("----------------------size: {}", obj.size());
-        obj.forEach((k, v) -> log.info("key: {}, value: {}", k, (v == null ? "" : v)));
-        return null;
     }
 }
