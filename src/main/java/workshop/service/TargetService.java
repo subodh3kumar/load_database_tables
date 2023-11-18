@@ -21,15 +21,15 @@ import java.util.Objects;
 @Service
 public class TargetService {
 
-    private final Connection connection;
+    private final DataSource dataSource;
 
     public TargetService(@Qualifier("targetDataSource") DataSource dataSource) {
-        connection = Objects.requireNonNull(DataSourceUtils.getConnection(dataSource));
+        this.dataSource = dataSource;
     }
 
 
     public void persistTableRows(List<Map<Column, Object>> tableRows, Table table) {
-        try {
+        try (Connection connection = Objects.requireNonNull(DataSourceUtils.getConnection(dataSource))) {
             DatabaseMetaData metaData = connection.getMetaData();
             String userName = metaData.getUserName();
             String targetProductName = metaData.getDatabaseProductName();

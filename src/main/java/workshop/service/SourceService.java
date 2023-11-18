@@ -16,16 +16,16 @@ import java.util.*;
 @Service
 public class SourceService {
 
-    private final Connection connection;
+    private final DataSource dataSource;
 
     public SourceService(@Qualifier("sourceDataSource") DataSource dataSource) {
-        connection = Objects.requireNonNull(DataSourceUtils.getConnection(dataSource));
+        this.dataSource = dataSource;
     }
 
     public List<Table> getSourceDatabaseInfo() {
         List<Table> tables = new ArrayList<>();
 
-        try {
+        try (Connection connection = Objects.requireNonNull(DataSourceUtils.getConnection(dataSource))) {
             DatabaseMetaData metaData = connection.getMetaData();
 
             String userName = metaData.getUserName();
@@ -80,7 +80,7 @@ public class SourceService {
         log.info("select sql query: {}", sql);
         List<Map<Column, Object>> results = new ArrayList<>();
 
-        try {
+        try (Connection connection = Objects.requireNonNull(DataSourceUtils.getConnection(dataSource))) {
             PreparedStatement ps = connection.prepareStatement(sql);
             ResultSet rs = ps.executeQuery();
 
