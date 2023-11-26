@@ -1,3 +1,4 @@
+/*
 package workshop.service;
 
 import lombok.extern.slf4j.Slf4j;
@@ -52,7 +53,7 @@ public class TargetService {
                 for (Map.Entry<Column, Object> entry : map.entrySet()) {
                     Column key = entry.getKey();
                     Object value = entry.getValue();
-                    ps.setObject(key.ordinalPosition(), value);
+                    ps.setObject(key.columnIndex(), value);
                 }
                 ps.addBatch();
             }
@@ -68,3 +69,4 @@ public class TargetService {
         return placeholder.substring(0, placeholder.length() - 1);
     }
 }
+*/

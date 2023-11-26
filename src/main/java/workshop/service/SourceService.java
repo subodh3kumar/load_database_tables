@@ -1,3 +1,4 @@
+/*
 package workshop.service;
 
 import lombok.extern.slf4j.Slf4j;
@@ -55,8 +56,8 @@ public class SourceService {
                 while (columnResultSet.next()) {
                     String columnName = columnResultSet.getString("COLUMN_NAME");
                     String columnType = columnResultSet.getString("TYPE_NAME");
-                    int ordinalPosition = columnResultSet.getInt("ORDINAL_POSITION");
-                    columns.add(new Column(columnName, columnType, ordinalPosition));
+                    int columnIndex = columnResultSet.getInt("ORDINAL_POSITION");
+                    columns.add(new Column(columnName, columnType, columnIndex));
                 }
                 tables.add(new Table(tableName, columns));
             }
@@ -90,7 +91,7 @@ public class SourceService {
                 var row = new HashMap<Column, Object>();
 
                 for (Column column : columns) {
-                    Object obj = rs.getObject(column.ordinalPosition());
+                    Object obj = rs.getObject(column.columnIndex());
                     row.put(column, obj);
                 }
                 results.add(row);
@@ -102,3 +103,4 @@ public class SourceService {
         return results;
     }
 }
+*/
