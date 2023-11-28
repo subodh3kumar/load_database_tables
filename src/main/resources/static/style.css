@@ -1,0 +1,10 @@
+body {
+    text-align: center;
+    background-color: #EAF2F8;
+}
+.dbInfo, table, th, td {
+  border: 1px solid black;
+  border-collapse: collapse;
+  padding: 5px;
+  background-color: #FAE5D3;
+}

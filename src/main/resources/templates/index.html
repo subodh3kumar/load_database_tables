@@ -1,14 +1,22 @@
 <!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="https://www.thymeleaf.org" lang="en">
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
 
 <head>
-	<meta charset="UTF-8">
-	<title>Load Database Tables</title>
+    <meta charset="UTF-8">
+    <title>Load Database Tables</title>
+    <link th:href="@{/style.css}" rel="stylesheet"/>
+    <script th:src="@{/load.js}" type="text/javascript"></script>
 </head>
-
 <body>
 <div th:align="center"><h1><i>Load Database Tables</i></h1></div>
-	<div th:text="|sum of 2 + 2 = ${2+2}|"></div>
-	<h1></h1>
+<div id="divDbInfo" th:align="center">
+    <table id="dbInfo">
+        <tr>
+            <th></th>
+            <th><label>Source Database</label></th>
+            <th><label>Target Database</label></th>
+        </tr>
+    </table>
+</div>
 </body>
 </html>

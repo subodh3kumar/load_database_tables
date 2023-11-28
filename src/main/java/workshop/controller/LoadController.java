@@ -22,27 +22,27 @@ public class LoadController {
         this.databaseService = databaseService;
     }
 
-    @GetMapping("/hi")
+/*    @GetMapping("/hi")
     public String getSourceDatabaseDetails() {
         databaseService.getSourceDatabaseInfo();
 
-   /*     Optional<Table> targetTableName = sourceTables.stream()
+   *//*     Optional<Table> targetTableName = sourceTables.stream()
                 .filter(table -> table.tableName().equals("EMPLOYEES"))
-                .findFirst();*/
+                .findFirst();*//*
 
- /*       if (targetTableName.isPresent()) {
+ *//*       if (targetTableName.isPresent()) {
             Table table = targetTableName.get();
             List<Map<Column, Object>> tableRows = databaseService.getTableRows(table, "");
             //tableRows.forEach(map -> log.info(map.values().toString()));
             databaseService.persistTableRows(tableRows, table);
-        }*/
-        return "index";
-    }
+        }*//*
+        return "indexaa";
+    }*/
 
     @GetMapping("/")
     public String homePage() {
-        databaseService.getSourceDatabaseDetails();
-        databaseService.getTargetDatabaseDetails();
+        databaseService.getSourceDatabaseInfo();
+        databaseService.getTargetDatabaseInfo();
         return "index";
     }
 }

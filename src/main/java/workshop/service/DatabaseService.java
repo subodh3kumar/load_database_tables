@@ -54,6 +54,7 @@ public class DatabaseService {
                 log.info("source database name with version: {}", sourceProductNameWithVersion);
                 session.setAttribute("source_database_name", sourceProductNameWithVersion);
             }
+
             if (session.getAttribute("source_service_name") == null) {
                 String url = metaData.getURL();
                 String serviceName = StringUtils.substringAfterLast(url, "/");
@@ -63,22 +64,19 @@ public class DatabaseService {
             }
 
             if (session.getAttribute("source_tables") == null) {
+                sourceSchemaName = sourceSchemaName.toUpperCase();
+                log.info("source schema name: {}", sourceSchemaName);
+
                 List<String> sourceTables = new ArrayList<>();
                 ResultSet tableResultSet = metaData.getTables(null, sourceSchemaName, null, new String[]{"TABLE"});
                 while (tableResultSet.next()) {
                     sourceTables.add(tableResultSet.getString("TABLE_NAME"));
                 }
                 log.info("total source tables available: {}", sourceTables.size());
-                session.setAttribute("source_table_names", sourceTables);
-            }
-
-            if (session.getAttribute("database_tables") == null && session.getAttribute("source_tables") != null) {
-                List<String> sourceTables = (List<String>) session.getAttribute("source_tables");
 
                 List<Table> tables = new ArrayList<>();
                 for (String tableName : sourceTables) {
                     ResultSet columnResultSet = metaData.getColumns(null, sourceSchemaName, tableName, null);
-
                     List<Column> columns = new ArrayList<>();
 
                     while (columnResultSet.next()) {
@@ -89,10 +87,39 @@ public class DatabaseService {
                     }
                     tables.add(new Table(tableName, columns));
                 }
+                tables.forEach(table -> log.info(table.toString()));
                 Database db = new Database(tables);
-                session.setAttribute("database_tables", db);
+                session.setAttribute("source_tables", db);
             }
-            //tables.forEach(table -> log.info(table.toString()));
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void getTargetDatabaseInfo() {
+        try (Connection connection = Objects.requireNonNull(DataSourceUtils.getConnection(targetDataSource))) {
+            DatabaseMetaData metaData = connection.getMetaData();
+
+            if (session.getAttribute("target_username") == null) {
+                String userName = metaData.getUserName();
+                log.info("target database username: {}", userName);
+                session.setAttribute("target_username", userName);
+            }
+
+            if (session.getAttribute("targets_database_name") == null) {
+                String sourceProductName = metaData.getDatabaseProductName();
+                String sourceProductNameWithVersion = getProductNameWithVersion(sourceProductName, metaData.getDatabaseMajorVersion(), metaData.getDatabaseMinorVersion());
+                log.info("target database name with version: {}", sourceProductNameWithVersion);
+                session.setAttribute("targets_database_name", sourceProductNameWithVersion);
+            }
+
+            if (session.getAttribute("target_service_name") == null) {
+                String url = metaData.getURL();
+                String serviceName = StringUtils.substringAfterLast(url, "/");
+                log.info("target url: {}", url);
+                log.info("target database service name: {}", serviceName);
+                session.setAttribute("target_service_name", serviceName);
+            }
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
@@ -178,10 +205,5 @@ public class DatabaseService {
         return placeholder.substring(0, placeholder.length() - 1);
     }
 
-    public void getSourceDatabaseDetails() {
-    }
 
-    public void getTargetDatabaseDetails() {
-
-    }
 }
